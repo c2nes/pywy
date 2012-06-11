@@ -7,17 +7,18 @@ import beaker.session
 import pywy.core
 import pywy.util
 
-def build_request_object(environ):
+def build_request_object(pywy_application, environ):
     """ Build a PyWy Request object from a WSGI environ object """
 
     request = pywy.core.Request()
 
+    request.application = pywy_application
     request.method = environ["REQUEST_METHOD"]
     request.request_uri = wsgiref.util.request_uri(environ)
     request.path = environ["PATH_INFO"]
     request.path_tail = request.path
 
-    session_options = pywy.core.beaker_session_options()
+    session_options = pywy_application.config.beaker_session_options
     request.session = beaker.session.SessionObject(environ, **session_options)
 
     request.base_uri = wsgiref.util.application_uri(environ)
@@ -32,10 +33,10 @@ def build_request_object(environ):
 
     return request
 
-def application(pywy):
+def application(pywy_application):
     def _app(environ, start_response):
-        request = build_request_object(environ)
-        response = pywy.handle_request(request)
+        request = build_request_object(pywy_application, environ)
+        response = pywy_application.handle_request(request)
 
         status = response.get_status()
         status = "%d %s" % (status, httplib.responses[status])

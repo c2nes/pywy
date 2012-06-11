@@ -2,8 +2,9 @@
 import mimetypes
 import os
 
+import pywy
+import pywy.core
 import pywy.response
-import pywy.config
 
 class ApplicationRedirectHandler(object):
     def __init__(self, location):
@@ -13,14 +14,14 @@ class ApplicationRedirectHandler(object):
         if self.location[0] == "/":
             self.location = self.location[1:]
 
-    def __call__(self, app, request):
-        return pywy.response.Redirect(pywy.config.BASE_URI + self.location)
+    def __call__(self, request):
+        return pywy.response.Redirect(request.application.config.BASE_URI + self.location)
 
 class AbsoluteRedirectHandler(object):
     def __init__(self, location):
         self.location = location
 
-    def __call__(self, app, request):
+    def __call__(self, request):
         return pywy.response.Redirect(self.location)
 
 class TemplateHandler(object):
@@ -29,9 +30,9 @@ class TemplateHandler(object):
         self.args = args
         self.kwargs = kwargs
 
-    def __call__(self, app, request):
+    def __call__(self, request):
         response = pywy.response.HtmlResponse()
-        response.write(app.render_template("index.html", *self.args, **self.kwargs))
+        response.write(request.application.template.render("index.html", *self.args, **self.kwargs))
 
         return response
 
@@ -61,18 +62,18 @@ class StaticContentHandler(object):
 
         return path
 
-    def __call__(self, app, request):
+    def __call__(self, request):
         path = self.__get_filesystem_path(request)
 
         if path == None or not os.path.isfile(path):
-            return pywy.response.Response(httplib.NOT_FOUND)
+            return pywy.core.Response(pywy.codes.NOT_FOUND)
 
         mimetype, encoding = self.mimedb.guess_type(path)
 
         if not mimetype:
             mimetype = "application/octet-stream"
 
-        response = pywy.response.Response()
+        response = pywy.core.Response()
         response.add_header("Content-Type", mimetype)
 
         with open(path) as f:
